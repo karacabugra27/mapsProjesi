@@ -8,6 +8,8 @@ import android.os.Bundle
 import androidx.core.content.ContextCompat
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -25,6 +27,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var binding: ActivityMapsBinding
     private lateinit var locationManager: LocationManager
     private lateinit var locationListener: LocationListener
+    private lateinit var permissionLauncher: ActivityResultLauncher<String>
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,16 +69,58 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             ) {
                 Snackbar.make(binding.root, "İzin gerekli", Snackbar.LENGTH_INDEFINITE)
                     .setAction("İzin ver") {
-                        //izin isteme
+                        permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                     }.show()
             } else {
-                // izni iste
+                permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
             }
         } else {
             //izni vermiş
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0,locationListener)
+            locationManager.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                0,
+                0f,
+                locationListener
+            )
 
+            val sonBilinenKonum = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            if (sonBilinenKonum != null) {
+                val sonBilinenLatLng = LatLng(sonBilinenKonum.latitude, sonBilinenKonum.longitude)
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(sonBilinenLatLng, 14f))
+            }
+        }
     }
 
-}
+    private fun registerLauncher() {
+        permissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { result ->
+                if (result) {
+                    if (ContextCompat.checkSelfPermission(
+                            this,
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        locationManager.requestLocationUpdates(
+                            LocationManager.GPS_PROVIDER,
+                            0,
+                            0f,
+                            locationListener
+                        )
+
+                        val sonBilinenKonum =
+                            locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                        if (sonBilinenKonum != null) {
+                            val sonBilinenLatLng =
+                                LatLng(sonBilinenKonum.latitude, sonBilinenKonum.longitude)
+                            mMap.moveCamera(
+                                CameraUpdateFactory.newLatLngZoom(
+                                    sonBilinenLatLng,
+                                    14f
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+    }
 }
