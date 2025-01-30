@@ -1,7 +1,14 @@
 package com.example.mapsprojesi
 
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
 
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -10,11 +17,15 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.example.mapsprojesi.databinding.ActivityMapsBinding
+import com.google.android.material.snackbar.Snackbar
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityMapsBinding
+    private lateinit var locationManager: LocationManager
+    private lateinit var locationListener: LocationListener
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,9 +40,42 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
+        //38.35008817169647, 38.29639264405646
+        /*val avm = LatLng(38.35008817169647, 38.29639264405646)
+        mMap.addMarker(MarkerOptions().position(avm).title("Marker in AVM"))
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(avm,14f))*/
 
-        val sydney = LatLng(-34.0, 151.0)
-        mMap.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney))
+        locationManager = this.getSystemService(LOCATION_SERVICE) as LocationManager
+        locationListener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                val kullaniciKonumu = LatLng(location.latitude, location.longitude)
+                mMap.addMarker(MarkerOptions().position(kullaniciKonumu).title("Konumunuz"))
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(kullaniciKonumu, 14f))
+            }
+        }
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )
+            ) {
+                Snackbar.make(binding.root, "İzin gerekli", Snackbar.LENGTH_INDEFINITE)
+                    .setAction("İzin ver") {
+                        //izin isteme
+                    }.show()
+            } else {
+                // izni iste
+            }
+        } else {
+            //izni vermiş
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0,0,locationListener)
+
     }
+
+}
 }
